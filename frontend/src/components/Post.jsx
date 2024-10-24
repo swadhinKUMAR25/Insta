@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 import { Bookmark, MessageCircle, MoreHorizontal, Send } from "lucide-react";
@@ -11,7 +12,7 @@ import { toast } from "sonner";
 import { setPosts, setSelectedPost } from "@/redux/postSlice";
 import { Badge } from "./ui/badge";
 
-const Post = ({ post }) => {
+const Post = ({ post, index }) => {
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
   const { user } = useSelector((store) => store.auth);
@@ -20,6 +21,20 @@ const Post = ({ post }) => {
   const [postLike, setPostLike] = useState(post.likes.length);
   const [comment, setComment] = useState(post.comments);
   const dispatch = useDispatch();
+
+  const postVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, delay: index * 0.1 },
+    },
+  };
+
+  const likeAnimation = {
+    scale: [1, 1.2, 1],
+    transition: { duration: 0.3 },
+  };
 
   const changeEventHandler = (e) => {
     const inputText = e.target.value;
@@ -37,13 +52,11 @@ const Post = ({ post }) => {
         `http://localhost:3000/api/v1/post/${post._id}/${action}`,
         { withCredentials: true }
       );
-      console.log(res.data);
       if (res.data.success) {
         const updatedLikes = liked ? postLike - 1 : postLike + 1;
         setPostLike(updatedLikes);
         setLiked(!liked);
 
-        // apne post ko update krunga
         const updatedPostData = posts.map((p) =>
           p._id === post._id
             ? {
@@ -59,6 +72,7 @@ const Post = ({ post }) => {
       }
     } catch (error) {
       console.log(error);
+      toast.error("Failed to update like status");
     }
   };
 
@@ -74,7 +88,6 @@ const Post = ({ post }) => {
           withCredentials: true,
         }
       );
-      console.log(res.data);
       if (res.data.success) {
         const updatedCommentData = [...comment, res.data.comment];
         setComment(updatedCommentData);
@@ -89,6 +102,22 @@ const Post = ({ post }) => {
       }
     } catch (error) {
       console.log(error);
+      toast.error("Failed to add comment");
+    }
+  };
+
+  const bookmarkHandler = async () => {
+    try {
+      const res = await axios.get(
+        `http://localhost:3000/api/v1/post/${post?._id}/bookmark`,
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        toast.success(res.data.message);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to bookmark post");
     }
   };
 
@@ -107,138 +136,162 @@ const Post = ({ post }) => {
       }
     } catch (error) {
       console.log(error);
-      toast.error(error.response.data.messsage);
+      toast.error("Failed to delete post");
     }
   };
 
-  const bookmarkHandler = async () => {
-    try {
-      const res = await axios.get(
-        `http://localhost:3000/api/v1/post/${post?._id}/bookmark`,
-        { withCredentials: true }
-      );
-      if (res.data.success) {
-        toast.success(res.data.message);
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
   return (
-    <div className="my-8 w-full max-w-sm mx-auto">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Avatar>
-            <AvatarImage src={post.author?.profilePicture} alt="post_image" />
-            <AvatarFallback>CN</AvatarFallback>
-          </Avatar>
+    <motion.div
+      variants={postVariants}
+      initial="hidden"
+      animate="visible"
+      className="my-8 w-full max-w-sm mx-auto bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+    >
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <h1>{post.author?.username}</h1>
-            {user?._id === post.author._id && (
-              <Badge variant="secondary">Author</Badge>
-            )}
+            <Avatar className="ring-2 ring-primary-200 ring-offset-2">
+              <AvatarImage src={post.author?.profilePicture} alt="post_image" />
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="font-semibold text-dark-100">
+                {post.author?.username}
+              </h1>
+              {user?._id === post.author._id && (
+                <Badge variant="secondary" className="animate-fade-in">
+                  Author
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <MoreHorizontal className="cursor-pointer" />
-          </DialogTrigger>
-          <DialogContent className="flex flex-col items-center text-sm text-center">
-            {post?.author?._id !== user?._id && (
-              <Button
-                variant="ghost"
-                className="cursor-pointer w-fit text-[#ED4956] font-bold"
+          <Dialog>
+            <DialogTrigger asChild>
+              <motion.div
+                whileHover={{ rotate: 90 }}
+                transition={{ duration: 0.2 }}
               >
-                Unfollow
+                <MoreHorizontal className="cursor-pointer text-gray-600" />
+              </motion.div>
+            </DialogTrigger>
+            <DialogContent className="flex flex-col items-center text-sm text-center">
+              {post?.author?._id !== user?._id && (
+                <Button
+                  variant="ghost"
+                  className="cursor-pointer w-fit text-[#ED4956] font-bold"
+                >
+                  Unfollow
+                </Button>
+              )}
+              <Button variant="ghost" className="cursor-pointer w-fit">
+                Add to favorites
               </Button>
-            )}
-
-            <Button variant="ghost" className="cursor-pointer w-fit">
-              Add to favorites
-            </Button>
-            {user && user?._id === post?.author._id && (
-              <Button
-                onClick={deletePostHandler}
-                variant="ghost"
-                className="cursor-pointer w-fit"
-              >
-                Delete
-              </Button>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
-      <img
-        className="rounded-sm my-2 w-full aspect-square object-cover"
-        src={post.image}
-        alt="post_img"
-      />
-
-      <div className="flex items-center justify-between my-2">
-        <div className="flex items-center gap-3">
-          {liked ? (
-            <FaHeart
-              onClick={likeOrDislikeHandler}
-              size={"24"}
-              className="cursor-pointer text-red-600"
-            />
-          ) : (
-            <FaRegHeart
-              onClick={likeOrDislikeHandler}
-              size={"22px"}
-              className="cursor-pointer hover:text-gray-600"
-            />
-          )}
-
-          <MessageCircle
-            onClick={() => {
-              dispatch(setSelectedPost(post));
-              setOpen(true);
-            }}
-            className="cursor-pointer hover:text-gray-600"
-          />
-          <Send className="cursor-pointer hover:text-gray-600" />
+              {user && user?._id === post?.author._id && (
+                <Button
+                  onClick={deletePostHandler}
+                  variant="ghost"
+                  className="cursor-pointer w-fit"
+                >
+                  Delete
+                </Button>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
-        <Bookmark
-          onClick={bookmarkHandler}
-          className="cursor-pointer hover:text-gray-600"
-        />
-      </div>
-      <span className="font-medium block mb-2">{postLike} likes</span>
-      <p>
-        <span className="font-medium mr-2">{post.author?.username}</span>
-        {post.caption}
-      </p>
-      {comment.length > 0 && (
-        <span
-          onClick={() => {
-            dispatch(setSelectedPost(post));
-            setOpen(true);
-          }}
-          className="cursor-pointer text-sm text-gray-400"
+
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ duration: 0.2 }}
+          className="relative rounded-lg overflow-hidden"
         >
-          View all {comment.length} comments
-        </span>
-      )}
-      <CommentDialog open={open} setOpen={setOpen} />
-      <div className="flex items-center justify-between">
-        <input
-          type="text"
-          placeholder="Add a comment..."
-          value={text}
-          onChange={changeEventHandler}
-          className="outline-none text-sm w-full"
-        />
-        {text && (
-          <span
-            onClick={commentHandler}
-            className="text-[#3BADF8] cursor-pointer"
-          >
-            Post
-          </span>
-        )}
+          <img
+            className="w-full aspect-square object-cover"
+            src={post.image}
+            alt="post_img"
+          />
+        </motion.div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <motion.div whileTap={likeAnimation}>
+              {liked ? (
+                <FaHeart
+                  onClick={likeOrDislikeHandler}
+                  size={24}
+                  className="cursor-pointer text-red-500"
+                />
+              ) : (
+                <FaRegHeart
+                  onClick={likeOrDislikeHandler}
+                  size={24}
+                  className="cursor-pointer hover:text-gray-700"
+                />
+              )}
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.1 }}>
+              <MessageCircle
+                onClick={() => {
+                  dispatch(setSelectedPost(post));
+                  setOpen(true);
+                }}
+                className="cursor-pointer hover:text-gray-700"
+                size={24}
+              />
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.1 }}>
+              <Send className="cursor-pointer hover:text-gray-700" size={24} />
+            </motion.div>
+          </div>
+          <motion.div whileHover={{ scale: 1.1 }}>
+            <Bookmark
+              onClick={bookmarkHandler}
+              className="cursor-pointer hover:text-gray-700"
+              size={24}
+            />
+          </motion.div>
+        </div>
+
+        <div className="mt-3">
+          <span className="font-semibold text-sm">{postLike} likes</span>
+          <p className="mt-1">
+            <span className="font-semibold mr-2">{post.author?.username}</span>
+            {post.caption}
+          </p>
+          {comment.length > 0 && (
+            <motion.span
+              whileHover={{ color: "#2563eb" }}
+              onClick={() => {
+                dispatch(setSelectedPost(post));
+                setOpen(true);
+              }}
+              className="cursor-pointer text-sm text-gray-500 block mt-2"
+            >
+              View all {comment.length} comments
+            </motion.span>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Add a comment..."
+            value={text}
+            onChange={changeEventHandler}
+            className="flex-1 outline-none text-sm bg-gray-50 rounded-full px-4 py-2 focus:bg-gray-100 transition-colors"
+          />
+          {text && (
+            <motion.span
+              whileHover={{ scale: 1.05 }}
+              onClick={commentHandler}
+              className="text-primary-500 font-semibold cursor-pointer text-sm"
+            >
+              Post
+            </motion.span>
+          )}
+        </div>
       </div>
-    </div>
+      <CommentDialog open={open} setOpen={setOpen} />
+    </motion.div>
   );
 };
 
