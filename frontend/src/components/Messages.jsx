@@ -27,23 +27,47 @@ const Messages = ({ selectedUser }) => {
     visible: { opacity: 1, y: 0 },
   };
 
+  const profileCardVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    }
+  };
+
   return (
-    <div className="overflow-y-auto flex-1 p-6 bg-gray-50">
+    <div className="overflow-y-auto flex-1 p-6 bg-gradient-to-b from-blue-50/50 to-white">
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
+        variants={profileCardVariants}
+        initial="hidden"
+        animate="visible"
         className="flex justify-center mb-8"
       >
-        <div className="flex flex-col items-center justify-center bg-white p-6 rounded-xl shadow-sm">
-          <Avatar className="h-20 w-20 ring-4 ring-primary-100">
-            <AvatarImage src={selectedUser?.profilePicture} alt="profile" />
-            <AvatarFallback>CN</AvatarFallback>
-          </Avatar>
-          <span className="mt-4 font-medium text-gray-900">
+        <div className="flex flex-col items-center justify-center bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 border border-blue-100">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <Avatar className="h-20 w-20 ring-4 ring-blue-100">
+              <AvatarImage src={selectedUser?.profilePicture} alt="profile" />
+              <AvatarFallback className="bg-blue-100 text-blue-600 text-xl">
+                {selectedUser?.username?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </motion.div>
+          <span className="mt-4 font-medium text-gray-900 text-lg">
             {selectedUser?.username}
           </span>
           <Link to={`/profile/${selectedUser?._id}`}>
-            <Button className="h-8 mt-4" variant="secondary">
+            <Button 
+              className="h-8 mt-4 bg-blue-600 hover:bg-blue-700 transition-colors"
+              variant="default"
+            >
               View profile
             </Button>
           </Link>
@@ -63,15 +87,16 @@ const Messages = ({ selectedUser }) => {
                 transition={{ delay: index * 0.1 }}
                 className={`flex ${isSender ? "justify-end" : "justify-start"}`}
               >
-                <div
-                  className={`p-3 rounded-2xl max-w-xs break-words ${
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className={`p-4 rounded-2xl max-w-md break-words ${
                     isSender
-                      ? "bg-primary-500 text-white rounded-br-none"
-                      : "bg-white text-gray-800 rounded-bl-none shadow-sm"
-                  }`}
+                      ? "bg-blue-600 text-white rounded-br-none shadow-blue-100"
+                      : "bg-white text-gray-800 rounded-bl-none border border-blue-100"
+                  } shadow-lg`}
                 >
                   {msg.message}
-                </div>
+                </motion.div>
               </motion.div>
             );
           })}

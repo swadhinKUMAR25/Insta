@@ -37,14 +37,13 @@ const LeftSidebar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeItem, setActiveItem] = useState("Home");
 
-  // Filter users based on search query
   const filteredUsers = suggestedUsers.filter(user => 
     user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (user.bio && user.bio.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // Dummy data for explore section (keeping this as it's visual content)
   const exploreItems = [
     { id: 1, title: "Photography", posts: 1234, image: "https://source.unsplash.com/random/400x400?photography" },
     { id: 2, title: "Travel", posts: 856, image: "https://source.unsplash.com/random/400x400?travel" },
@@ -70,6 +69,7 @@ const LeftSidebar = () => {
   };
 
   const sidebarHandler = (textType) => {
+    setActiveItem(textType);
     if (textType === "Logout") {
       logoutHandler();
     } else if (textType === "Create") {
@@ -88,66 +88,78 @@ const LeftSidebar = () => {
   };
 
   const sidebarItems = [
-    { icon: <Home />, text: "Home" },
-    { icon: <Search />, text: "Search" },
-    { icon: <TrendingUp />, text: "Explore" },
-    { icon: <MessageCircle />, text: "Messages" },
-    { icon: <Heart />, text: "Notifications" },
-    { icon: <PlusSquare />, text: "Create" },
+    { icon: <Home className="transition-transform group-hover:scale-110" />, text: "Home" },
+    { icon: <Search className="transition-transform group-hover:scale-110" />, text: "Search" },
+    { icon: <TrendingUp className="transition-transform group-hover:scale-110" />, text: "Explore" },
+    { icon: <MessageCircle className="transition-transform group-hover:scale-110" />, text: "Messages" },
+    { icon: <Heart className="transition-transform group-hover:scale-110" />, text: "Notifications" },
+    { icon: <PlusSquare className="transition-transform group-hover:scale-110" />, text: "Create" },
     {
       icon: (
-        <Avatar className="w-6 h-6">
+        <Avatar className="w-6 h-6 ring-2 ring-violet-500 ring-offset-2 transition-all duration-300 group-hover:ring-offset-4">
           <AvatarImage src={user?.profilePicture} alt="@shadcn" />
           <AvatarFallback>CN</AvatarFallback>
         </Avatar>
       ),
       text: "Profile",
     },
-    { icon: <LogOut />, text: "Logout" },
+    { icon: <LogOut className="transition-transform group-hover:scale-110" />, text: "Logout" },
   ];
 
   return (
     <>
-      <div className="fixed top-0 z-10 left-0 px-4 border-r border-gray-300 w-[16%] h-screen">
+      <div className="fixed top-0 z-10 left-0 px-4 border-r border-violet-100 w-[16%] h-screen bg-white/80 backdrop-blur-xl">
         <div className="flex flex-col">
-          <h1 className="my-8 pl-3 font-bold text-xl">LOGO</h1>
-          <div>
+          <h1 className="my-8 pl-3 font-bold text-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
+            ChatFlow
+          </h1>
+          <div className="space-y-1">
             {sidebarItems.map((item, index) => (
               <div
                 onClick={() => sidebarHandler(item.text)}
                 key={index}
-                className="flex items-center gap-3 relative hover:bg-gray-100 cursor-pointer rounded-lg p-3 my-3"
+                className={`group flex items-center gap-3 relative hover:bg-violet-50 cursor-pointer rounded-xl p-3 transition-all duration-300 ${
+                  activeItem === item.text ? 'bg-violet-50 shadow-sm' : ''
+                }`}
               >
-                {item.icon}
-                <span>{item.text}</span>
+                <span className={`transition-colors duration-300 ${
+                  activeItem === item.text ? 'text-violet-600' : 'text-gray-600'
+                }`}>
+                  {item.icon}
+                </span>
+                <span className={`font-medium transition-colors duration-300 ${
+                  activeItem === item.text ? 'text-violet-600' : 'text-gray-700'
+                }`}>
+                  {item.text}
+                </span>
                 {item.text === "Notifications" && likeNotification.length > 0 && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         size="icon"
-                        className="rounded-full h-5 w-5 bg-red-600 hover:bg-red-600 absolute bottom-6 left-6"
+                        className="rounded-full h-5 w-5 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 absolute -top-1 -right-1 shadow-lg transition-transform duration-300 hover:scale-110"
                       >
                         {likeNotification.length}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent>
-                      <div>
+                    <PopoverContent className="w-80 p-4 bg-white/90 backdrop-blur-lg border border-violet-100">
+                      <div className="space-y-3">
                         {likeNotification.length === 0 ? (
-                          <p>No new notification</p>
+                          <p className="text-center text-gray-500">No new notifications</p>
                         ) : (
                           likeNotification.map((notification) => (
                             <div
                               key={notification.userId}
-                              className="flex items-center gap-2 my-2"
+                              className="flex items-center gap-3 p-2 hover:bg-violet-50 rounded-lg transition-colors duration-200"
                             >
-                              <Avatar>
+                              <Avatar className="ring-2 ring-violet-200">
                                 <AvatarImage
                                   src={notification.userDetails?.profilePicture}
                                 />
                                 <AvatarFallback>CN</AvatarFallback>
                               </Avatar>
                               <p className="text-sm">
-                                <span className="font-bold">
+                                <span className="font-semibold text-violet-700">
                                   {notification.userDetails?.username}
                                 </span>{" "}
                                 liked your post
@@ -167,61 +179,70 @@ const LeftSidebar = () => {
 
       <CreatePost open={open} setOpen={setOpen} />
 
-      {/* Search Dialog */}
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-  <DialogContent className="sm:max-w-[425px]">
-    <DialogHeader>
-      <DialogTitle>Search</DialogTitle>
-    </DialogHeader>
-    <div className="mt-4">
-      <Input
-        placeholder="Search users..."
-        className="mb-4"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
-      <div className="space-y-4">
-        {filteredUsers.map((user) => (
-         <Link to={`/profile/${user._id}`} key={user._id} className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
-            <Avatar>
-              <AvatarImage src={user.profilePicture} />
-              <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold">{user.username}</p>
-              <p className="text-sm text-gray-500">{user.bio || 'Bio here...'}</p>
-            </div>
-            <span className="ml-auto text-[#3BADF8] text-xs font-bold cursor-pointer hover:text-[#3495d6]">
-              Follow
-            </span>
-          </Link>
-        ))}
-        {filteredUsers.length === 0 && (
-          <p className="text-center text-gray-500">No users found</p>
-        )}
-      </div>
-    </div>
-  </DialogContent>
-</Dialog>
-
-      {/* Explore Dialog */}
-      <Dialog open={exploreOpen} onOpenChange={setExploreOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[425px] bg-white/90 backdrop-blur-xl border-violet-100">
           <DialogHeader>
-            <DialogTitle>Explore</DialogTitle>
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
+              Search Users
+            </DialogTitle>
           </DialogHeader>
-          <div className="mt-4 grid grid-cols-2 gap-4">
+          <div className="mt-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-violet-400" />
+              <Input
+                placeholder="Search users..."
+                className="pl-10 border-violet-100 focus:ring-violet-500 transition-all duration-300"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="mt-4 space-y-2 max-h-[60vh] overflow-y-auto">
+              {filteredUsers.map((user) => (
+                <Link
+                  to={`/profile/${user._id}`}
+                  key={user._id}
+                  className="flex items-center gap-3 p-3 hover:bg-violet-50 rounded-xl cursor-pointer transition-all duration-200 group"
+                >
+                  <Avatar className="ring-2 ring-violet-200 transition-all duration-300 group-hover:ring-violet-400">
+                    <AvatarImage src={user.profilePicture} />
+                    <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900">{user.username}</p>
+                    <p className="text-sm text-gray-500">{user.bio || 'Bio here...'}</p>
+                  </div>
+                  <span className="px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-105">
+                    Follow
+                  </span>
+                </Link>
+              ))}
+              {filteredUsers.length === 0 && (
+                <p className="text-center text-gray-500 py-4">No users found</p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={exploreOpen} onOpenChange={setExploreOpen}>
+        <DialogContent className="sm:max-w-[600px] bg-white/90 backdrop-blur-xl border-violet-100">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
+              Explore
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-6 grid grid-cols-2 gap-4">
             {exploreItems.map((item) => (
-              <div key={item.id} className="group relative cursor-pointer">
+              <div key={item.id} className="group relative cursor-pointer overflow-hidden rounded-xl">
                 <img
                   src={item.image}
                   alt={item.title}
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                  <div className="text-center text-white">
+                <div className="absolute inset-0 bg-gradient-to-t from-violet-900/90 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4">
+                  <div className="text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                     <h3 className="font-bold text-lg">{item.title}</h3>
-                    <p className="text-sm">{item.posts} posts</p>
+                    <p className="text-violet-200">{item.posts.toLocaleString()} posts</p>
                   </div>
                 </div>
               </div>
