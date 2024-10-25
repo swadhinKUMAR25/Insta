@@ -26,24 +26,25 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { Input } from "./ui/input";
+import { Link } from "react-router-dom";
 
 const LeftSidebar = () => {
   const navigate = useNavigate();
-  const { user } = useSelector((store) => store.auth);
+  const { user, suggestedUsers } = useSelector((store) => store.auth);
   const { likeNotification } = useSelector((store) => store.realTimeNotification);
   const dispatch = useDispatch();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Dummy data for search results
-  const searchResults = [
-    { id: 1, username: "john_doe", name: "John Doe", profilePicture: "https://api.dicebear.com/7.x/avataaars/svg?seed=John" },
-    { id: 2, username: "jane_smith", name: "Jane Smith", profilePicture: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jane" },
-    { id: 3, username: "mike_wilson", name: "Mike Wilson", profilePicture: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike" },
-  ];
+  // Filter users based on search query
+  const filteredUsers = suggestedUsers.filter(user => 
+    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (user.bio && user.bio.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
-  // Dummy data for explore section
+  // Dummy data for explore section (keeping this as it's visual content)
   const exploreItems = [
     { id: 1, title: "Photography", posts: 1234, image: "https://source.unsplash.com/random/400x400?photography" },
     { id: 2, title: "Travel", posts: 856, image: "https://source.unsplash.com/random/400x400?travel" },
@@ -168,32 +169,40 @@ const LeftSidebar = () => {
 
       {/* Search Dialog */}
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Search</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4">
-            <Input
-              placeholder="Search users..."
-              className="mb-4"
-            />
-            <div className="space-y-4">
-              {searchResults.map((user) => (
-                <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
-                  <Avatar>
-                    <AvatarImage src={user.profilePicture} />
-                    <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold">{user.name}</p>
-                    <p className="text-sm text-gray-500">@{user.username}</p>
-                  </div>
-                </div>
-              ))}
+  <DialogContent className="sm:max-w-[425px]">
+    <DialogHeader>
+      <DialogTitle>Search</DialogTitle>
+    </DialogHeader>
+    <div className="mt-4">
+      <Input
+        placeholder="Search users..."
+        className="mb-4"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      <div className="space-y-4">
+        {filteredUsers.map((user) => (
+         <Link to={`/profile/${user._id}`} key={user._id} className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+            <Avatar>
+              <AvatarImage src={user.profilePicture} />
+              <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-semibold">{user.username}</p>
+              <p className="text-sm text-gray-500">{user.bio || 'Bio here...'}</p>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            <span className="ml-auto text-[#3BADF8] text-xs font-bold cursor-pointer hover:text-[#3495d6]">
+              Follow
+            </span>
+          </Link>
+        ))}
+        {filteredUsers.length === 0 && (
+          <p className="text-center text-gray-500">No users found</p>
+        )}
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
 
       {/* Explore Dialog */}
       <Dialog open={exploreOpen} onOpenChange={setExploreOpen}>

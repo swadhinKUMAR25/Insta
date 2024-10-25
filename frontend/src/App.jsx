@@ -13,6 +13,7 @@ import { setSocket } from "./redux/socketSlice";
 import { setOnlineUsers } from "./redux/chatSlice";
 import { setLikeNotification } from "./redux/rtnSlice";
 import ProtectedRoutes from "./components/ProtectedRoutes";
+import MapComponent from "./components/IPSecurityMap";
 
 const browserRouter = createBrowserRouter([
   {
@@ -66,6 +67,11 @@ const browserRouter = createBrowserRouter([
     path: "/signup",
     element: <Signup />,
   },
+  {
+    path:"/IP-Map",
+    element:<MapComponent/>
+
+  }
 ]);
 
 function App() {
