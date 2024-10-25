@@ -14,6 +14,7 @@ import { setSocket } from "./redux/socketSlice";
 import { setOnlineUsers } from "./redux/chatSlice";
 import { setLikeNotification } from "./redux/rtnSlice";
 import ProtectedRoutes from "./components/ProtectedRoutes";
+import MapComponent from "./components/IPSecurityMap";
 
 const browserRouter = createBrowserRouter([
   {
@@ -69,6 +70,10 @@ const browserRouter = createBrowserRouter([
   {
     path: "/verify-otp",
     element: <OTPVerification />,
+  },
+  {
+    path: "/IP-Map",
+    element: <MapComponent />,
   },
 ]);
 
