@@ -6,6 +6,7 @@ import Login from "./components/Login";
 import MainLayout from "./components/MainLayout";
 import Profile from "./components/Profile";
 import Signup from "./components/Signup";
+import OTPVerification from "./components/OTPVerification";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useDispatch, useSelector } from "react-redux";
@@ -35,7 +36,6 @@ const browserRouter = createBrowserRouter([
         path: "/profile/:id",
         element: (
           <ProtectedRoutes>
-            {" "}
             <Profile />
           </ProtectedRoutes>
         ),
@@ -65,6 +65,10 @@ const browserRouter = createBrowserRouter([
   {
     path: "/signup",
     element: <Signup />,
+  },
+  {
+    path: "/verify-otp",
+    element: <OTPVerification />,
   },
 ]);
 
@@ -102,11 +106,7 @@ function App() {
     }
   }, [user, dispatch]);
 
-  return (
-    <>
-      <RouterProvider router={browserRouter} />
-    </>
-  );
+  return <RouterProvider router={browserRouter} />;
 }
 
 export default App;

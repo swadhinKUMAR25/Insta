@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useSelector } from "react-redux";
+import OTPVerification from "./OTPVerification";
 
 const Signup = () => {
   const [input, setInput] = useState({
@@ -14,6 +15,7 @@ const Signup = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState(null);
   const { user } = useSelector((store) => store.auth);
   const navigate = useNavigate();
 
@@ -36,7 +38,7 @@ const Signup = () => {
         }
       );
       if (res.data.success) {
-        navigate("/login");
+        setUserId(res.data.userId);
         toast.success(res.data.message);
         setInput({
           username: "",
@@ -56,7 +58,12 @@ const Signup = () => {
     if (user) {
       navigate("/");
     }
-  }, []);
+  }, [user, navigate]);
+
+  if (userId) {
+    return <OTPVerification userId={userId} isLogin={false} />;
+  }
+
   return (
     <div className="flex items-center w-screen h-screen justify-center">
       <form
@@ -100,7 +107,7 @@ const Signup = () => {
           />
         </div>
         {loading ? (
-          <Button>
+          <Button disabled>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Please wait
           </Button>

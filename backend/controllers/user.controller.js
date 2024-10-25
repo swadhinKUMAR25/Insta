@@ -4,6 +4,33 @@ import jwt from "jsonwebtoken";
 import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloudinary.js";
 import { Post } from "../models/post.model.js";
+import { generateOTP, getOTPExpiry, sendOTPEmail } from "../utils/email.js";
+import requestIp from "request-ip";
+import axios from "axios";
+
+async function fetchGeolocation(ip) {
+  try {
+    if (ip === "127.0.0.1" || ip === "::1") {
+      return { latitude: "0", longitude: "0" };
+    }
+
+    const response = await axios.get(
+      `https://ipinfo.io/${ip}?token=a293b4fa2f2e78`
+    );
+    const { loc } = response.data;
+
+    if (!loc) {
+      return { latitude: "0", longitude: "0" };
+    }
+
+    const [latitude, longitude] = loc.split(",");
+    return { latitude, longitude };
+  } catch (error) {
+    console.error("Geolocation fetch error:", error);
+    return { latitude: "0", longitude: "0" };
+  }
+}
+
 export const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -13,27 +40,104 @@ export const register = async (req, res) => {
         success: false,
       });
     }
-    const user = await User.findOne({ email });
-    if (user) {
+
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
       return res.status(401).json({
-        message: "Try different email",
+        message:
+          existingUser.email === email
+            ? "Email already taken"
+            : "Username already taken",
         success: false,
       });
     }
+
+    const userIP = requestIp.getClientIp(req);
+    const geoLocation = await fetchGeolocation(userIP);
+    const otp = generateOTP();
+    const otpExpiry = getOTPExpiry();
     const hashedPassword = await bcrypt.hash(password, 10);
-    await User.create({
+
+    const newUser = await User.create({
       username,
       email,
       password: hashedPassword,
+      isMFAEnabled: true,
+      otp,
+      otpExpiresAt: otpExpiry,
+      emailVerified: false,
+      lastLoginIP: userIP,
+      lastLoginLocation: geoLocation,
     });
+
+    await sendOTPEmail(email, otp);
+
     return res.status(201).json({
-      message: "Account created successfully.",
+      message:
+        "Please verify your email with the OTP sent to your email address",
+      userId: newUser._id.toString(),
       success: true,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    return res.status(500).json({
+      message: "Error registering user",
+      success: false,
+    });
   }
 };
+
+export const verifyEmail = async (req, res) => {
+  try {
+    const { userId, otp } = req.body;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({
+        message: "Email already verified",
+        success: false,
+      });
+    }
+
+    if (!user.otp || !user.otpExpiresAt || new Date() > user.otpExpiresAt) {
+      return res.status(400).json({
+        message: "OTP has expired",
+        success: false,
+      });
+    }
+
+    if (user.otp !== otp) {
+      return res.status(401).json({
+        message: "Invalid OTP",
+        success: false,
+      });
+    }
+
+    user.emailVerified = true;
+    user.otp = null;
+    user.otpExpiresAt = null;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Email verified successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Error verifying email",
+      success: false,
+    });
+  }
+};
+
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -43,13 +147,22 @@ export const login = async (req, res) => {
         success: false,
       });
     }
-    let user = await User.findOne({ email });
+
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({
         message: "Incorrect email or password",
         success: false,
       });
     }
+
+    if (!user.emailVerified) {
+      return res.status(401).json({
+        message: "Please verify your email first",
+        success: false,
+      });
+    }
+
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
       return res.status(401).json({
@@ -58,32 +171,40 @@ export const login = async (req, res) => {
       });
     }
 
-    const token = await jwt.sign(
+    const userIP = requestIp.getClientIp(req);
+    const geoLocation = await fetchGeolocation(userIP);
+
+    if (user.isMFAEnabled) {
+      const otp = generateOTP();
+      const otpExpiry = getOTPExpiry();
+
+      user.otp = otp;
+      user.otpExpiresAt = otpExpiry;
+      user.otpVerified = false;
+      user.lastLoginIP = userIP;
+      user.lastLoginLocation = geoLocation;
+      await user.save();
+
+      await sendOTPEmail(user.email, otp);
+
+      return res.status(200).json({
+        message: "OTP sent to your email",
+        userId: user._id.toString(),
+        requiresOTP: true,
+        success: true,
+      });
+    }
+
+    const token = jwt.sign(
       { userId: user._id },
       "b4b68c9c73034fb7d3c9e5fcb9bcf156e43b8c95f34346e86fce70db70b8d4d4",
       { expiresIn: "1d" }
     );
 
-    // populate each post if in the posts array
-    const populatedPosts = await Promise.all(
-      user.posts.map(async (postId) => {
-        const post = await Post.findById(postId);
-        if (post.author.equals(user._id)) {
-          return post;
-        }
-        return null;
-      })
-    );
-    user = {
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      profilePicture: user.profilePicture,
-      bio: user.bio,
-      followers: user.followers,
-      following: user.following,
-      posts: populatedPosts,
-    };
+    user.lastLoginIP = userIP;
+    user.lastLoginLocation = geoLocation;
+    await user.save();
+
     return res
       .cookie("token", token, {
         httpOnly: true,
@@ -93,12 +214,93 @@ export const login = async (req, res) => {
       .json({
         message: `Welcome back ${user.username}`,
         success: true,
-        user,
+        user: {
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          profilePicture: user.profilePicture,
+          bio: user.bio,
+          followers: user.followers,
+          following: user.following,
+          posts: user.posts,
+        },
       });
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    return res.status(500).json({
+      message: "Error during login",
+      success: false,
+    });
   }
 };
+
+export const verifyLoginOTP = async (req, res) => {
+  try {
+    const { userId, otp } = req.body;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    if (!user.otp || !user.otpExpiresAt || new Date() > user.otpExpiresAt) {
+      return res.status(400).json({
+        message: "OTP has expired",
+        success: false,
+      });
+    }
+
+    if (user.otp !== otp) {
+      return res.status(401).json({
+        message: "Invalid OTP",
+        success: false,
+      });
+    }
+
+    const token = jwt.sign(
+      { userId: user._id },
+      "b4b68c9c73034fb7d3c9e5fcb9bcf156e43b8c95f34346e86fce70db70b8d4d4",
+      { expiresIn: "1d" }
+    );
+
+    user.otp = null;
+    user.otpExpiresAt = null;
+    user.otpVerified = true;
+    await user.save();
+
+    return res
+      .cookie("token", token, {
+        httpOnly: true,
+        sameSite: "strict",
+        maxAge: 1 * 24 * 60 * 60 * 1000,
+      })
+      .json({
+        message: `Welcome back ${user.username}`,
+        success: true,
+        user: {
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          profilePicture: user.profilePicture,
+          bio: user.bio,
+          followers: user.followers,
+          following: user.following,
+          posts: user.posts,
+        },
+      });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Error verifying OTP",
+      success: false,
+    });
+  }
+};
+
+// Rest of your existing controller functions...
 export const logout = async (_, res) => {
   try {
     return res.cookie("token", "", { maxAge: 0 }).json({
@@ -109,6 +311,7 @@ export const logout = async (_, res) => {
     console.log(error);
   }
 };
+
 export const getProfile = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -158,6 +361,7 @@ export const editProfile = async (req, res) => {
     console.log(error);
   }
 };
+
 export const getSuggestedUsers = async (req, res) => {
   try {
     const suggestedUsers = await User.find({ _id: { $ne: req.id } }).select(
@@ -176,10 +380,11 @@ export const getSuggestedUsers = async (req, res) => {
     console.log(error);
   }
 };
+
 export const followOrUnfollow = async (req, res) => {
   try {
-    const followKrneWala = req.id; // patel
-    const jiskoFollowKrunga = req.params.id; // shivani
+    const followKrneWala = req.id;
+    const jiskoFollowKrunga = req.params.id;
     if (followKrneWala === jiskoFollowKrunga) {
       return res.status(400).json({
         message: "You cannot follow/unfollow yourself",
@@ -196,10 +401,9 @@ export const followOrUnfollow = async (req, res) => {
         success: false,
       });
     }
-    // mai check krunga ki follow krna hai ya unfollow
+
     const isFollowing = user.following.includes(jiskoFollowKrunga);
     if (isFollowing) {
-      // unfollow logic ayega
       await Promise.all([
         User.updateOne(
           { _id: followKrneWala },
@@ -214,7 +418,6 @@ export const followOrUnfollow = async (req, res) => {
         .status(200)
         .json({ message: "Unfollowed successfully", success: true });
     } else {
-      // follow logic ayega
       await Promise.all([
         User.updateOne(
           { _id: followKrneWala },
@@ -231,5 +434,81 @@ export const followOrUnfollow = async (req, res) => {
     }
   } catch (error) {
     console.log(error);
+  }
+};
+
+export const resendLoginOTP = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    const otp = generateOTP();
+    const otpExpiry = getOTPExpiry();
+
+    user.otp = otp;
+    user.otpExpiresAt = otpExpiry;
+    user.otpVerified = false;
+    await user.save();
+
+    await sendOTPEmail(user.email, otp);
+
+    return res.status(200).json({
+      message: "New OTP sent to your email",
+      success: true,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Error sending OTP",
+      success: false,
+    });
+  }
+};
+
+export const resendSignupOTP = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({
+        message: "Email is already verified",
+        success: false,
+      });
+    }
+
+    const otp = generateOTP();
+    const otpExpiry = getOTPExpiry();
+
+    user.otp = otp;
+    user.otpExpiresAt = otpExpiry;
+    await user.save();
+
+    await sendOTPEmail(user.email, otp);
+
+    return res.status(200).json({
+      message: "New OTP sent to your email",
+      success: true,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Error sending OTP",
+      success: false,
+    });
   }
 };

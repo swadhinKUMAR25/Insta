@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthUser } from "@/redux/authSlice";
+import OTPVerification from "./OTPVerification";
 
 const Login = () => {
   const [input, setInput] = useState({
@@ -14,6 +15,8 @@ const Login = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [requiresOTP, setRequiresOTP] = useState(false);
   const { user } = useSelector((store) => store.auth);
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -22,7 +25,7 @@ const Login = () => {
     setInput({ ...input, [e.target.name]: e.target.value });
   };
 
-  const signupHandler = async (e) => {
+  const loginHandler = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
@@ -36,18 +39,25 @@ const Login = () => {
           withCredentials: true,
         }
       );
+
       if (res.data.success) {
-        dispatch(setAuthUser(res.data.user));
-        navigate("/");
-        toast.success(res.data.message);
+        if (res.data.requiresOTP) {
+          setUserId(res.data.userId);
+          setRequiresOTP(true);
+          toast.success("OTP sent to your email");
+        } else {
+          dispatch(setAuthUser(res.data.user));
+          navigate("/");
+          toast.success(res.data.message);
+        }
         setInput({
           email: "",
           password: "",
         });
       }
     } catch (error) {
-      console.log(error);
-      toast.error(error.response.data.message);
+      console.error(error);
+      toast.error(error.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -57,11 +67,16 @@ const Login = () => {
     if (user) {
       navigate("/");
     }
-  }, []);
+  }, [user, navigate]);
+
+  if (requiresOTP && userId) {
+    return <OTPVerification userId={userId} isLogin={true} />;
+  }
+
   return (
     <div className="flex items-center w-screen h-screen justify-center">
       <form
-        onSubmit={signupHandler}
+        onSubmit={loginHandler}
         className="shadow-lg flex flex-col gap-5 p-8"
       >
         <div className="my-4">
@@ -78,6 +93,7 @@ const Login = () => {
             value={input.email}
             onChange={changeEventHandler}
             className="focus-visible:ring-transparent my-2"
+            required
           />
         </div>
         <div>
@@ -88,10 +104,11 @@ const Login = () => {
             value={input.password}
             onChange={changeEventHandler}
             className="focus-visible:ring-transparent my-2"
+            required
           />
         </div>
         {loading ? (
-          <Button>
+          <Button disabled>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Please wait
           </Button>
@@ -100,7 +117,7 @@ const Login = () => {
         )}
 
         <span className="text-center">
-          Dosent have an account?{" "}
+          Don't have an account?{" "}
           <Link to="/signup" className="text-blue-600">
             Signup
           </Link>
