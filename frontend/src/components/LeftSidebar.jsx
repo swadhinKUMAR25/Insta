@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { toast } from "sonner";
 import axios from "axios";
@@ -38,6 +39,7 @@ const LeftSidebar = () => {
   const [exploreOpen, setExploreOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeItem, setActiveItem] = useState("Home");
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   const filteredUsers = suggestedUsers.filter(user => 
     user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -45,11 +47,38 @@ const LeftSidebar = () => {
   );
 
   const exploreItems = [
-    { id: 1, title: "Photography", posts: 1234, image: "https://source.unsplash.com/random/400x400?photography" },
-    { id: 2, title: "Travel", posts: 856, image: "https://source.unsplash.com/random/400x400?travel" },
-    { id: 3, title: "Food", posts: 2341, image: "https://source.unsplash.com/random/400x400?food" },
-    { id: 4, title: "Technology", posts: 945, image: "https://source.unsplash.com/random/400x400?technology" },
-  ];
+    {
+      id: 1,
+      title: "Photography",
+      posts: 1234,
+      image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=400&fit=crop",
+      description: "Capture life's beautiful moments through the lens",
+      tags: ["#photography", "#camera", "#art"]
+    },
+    {
+      id: 2,
+      title: "Travel",
+      image: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=400&fit=crop",
+      posts: 856,
+      description: "Explore the world, one destination at a time",
+      tags: ["#travel", "#adventure", "#wanderlust"]
+    },
+    {
+      id: 3,
+      title: "Food",
+      posts: 2341,
+      image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop",
+      description: "Delicious recipes and culinary adventures",
+      tags: ["#food", "#cooking", "#foodie"]
+    },
+    {
+      id: 4,
+      title: "Technology",
+      posts: 945,
+      image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=400&fit=crop",
+      description: "Stay updated with the latest tech trends",
+      tags: ["#tech", "#innovation", "#future"]
+    }];
 
   const logoutHandler = async () => {
     try {
@@ -110,12 +139,24 @@ const LeftSidebar = () => {
     <>
       <div className="fixed top-0 z-10 left-0 px-4 border-r border-violet-100 w-[16%] h-screen bg-white/80 backdrop-blur-xl">
         <div className="flex flex-col">
-          <h1 className="my-8 pl-3 font-bold text-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
+          <motion.h1 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="my-8 pl-3 font-bold text-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent"
+          >
             ChatFlow
-          </h1>
-          <div className="space-y-1">
+          </motion.h1>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-1"
+          >
             {sidebarItems.map((item, index) => (
-              <div
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
                 onClick={() => sidebarHandler(item.text)}
                 key={index}
                 className={`group flex items-center gap-3 relative hover:bg-violet-50 cursor-pointer rounded-xl p-3 transition-all duration-300 ${
@@ -148,7 +189,9 @@ const LeftSidebar = () => {
                           <p className="text-center text-gray-500">No new notifications</p>
                         ) : (
                           likeNotification.map((notification) => (
-                            <div
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
                               key={notification.userId}
                               className="flex items-center gap-3 p-2 hover:bg-violet-50 rounded-lg transition-colors duration-200"
                             >
@@ -164,16 +207,16 @@ const LeftSidebar = () => {
                                 </span>{" "}
                                 liked your post
                               </p>
-                            </div>
+                            </motion.div>
                           ))
                         )}
                       </div>
                     </PopoverContent>
                   </Popover>
                 )}
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </div>
 
@@ -225,29 +268,77 @@ const LeftSidebar = () => {
       </Dialog>
 
       <Dialog open={exploreOpen} onOpenChange={setExploreOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-white/90 backdrop-blur-xl border-violet-100">
+        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto bg-white/90 backdrop-blur-xl border-violet-100">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-              Explore
+              Explore Trending Categories
             </DialogTitle>
           </DialogHeader>
-          <div className="mt-6 grid grid-cols-2 gap-4">
-            {exploreItems.map((item) => (
-              <div key={item.id} className="group relative cursor-pointer overflow-hidden rounded-xl">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-violet-900/90 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4">
-                  <div className="text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 className="font-bold text-lg">{item.title}</h3>
-                    <p className="text-violet-200">{item.posts.toLocaleString()} posts</p>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="mt-6"
+          >
+            <div className="grid grid-cols-2 gap-6">
+              {exploreItems.map((item, index) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  key={item.id}
+                  onClick={() => setSelectedCategory(selectedCategory === item.id ? null : item.id)}
+                  className={`group relative cursor-pointer overflow-hidden rounded-2xl transition-all duration-500 ${
+                    selectedCategory === item.id ? 'col-span-2 h-96' : 'h-64'
+                  }`}
+                >
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-violet-900/90 via-violet-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500">
+                    <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
+                      <motion.h3 
+                        layout
+                        className="font-bold text-2xl text-white mb-2"
+                      >
+                        {item.title}
+                      </motion.h3>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                      >
+                        <p className="text-violet-200 mb-3">{item.description}</p>
+                        <div className="flex gap-2 flex-wrap">
+                          {item.tags.map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className="px-3 py-1 text-xs font-semibold text-white bg-violet-500/30 rounded-full backdrop-blur-sm"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="mt-4 flex items-center gap-2">
+                          <span className="text-violet-200 text-sm">
+                            {item.posts.toLocaleString()} posts
+                          </span>
+                          <Button
+                            size="sm"
+                            className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm"
+                          >
+                            View All
+                          </Button>
+                        </div>
+                      </motion.div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         </DialogContent>
       </Dialog>
     </>
