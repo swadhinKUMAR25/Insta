@@ -41,21 +41,21 @@ const Messages = ({ selectedUser }) => {
   };
 
   return (
-    <div className="overflow-y-auto flex-1 p-6 bg-gradient-to-b from-blue-50/50 to-white">
+    <div className="overflow-y-auto flex-1 p-6 bg-gradient-to-b from-purple-50/50 via-pink-50/30 to-white">
       <motion.div
         variants={profileCardVariants}
         initial="hidden"
         animate="visible"
         className="flex justify-center mb-8"
       >
-        <div className="flex flex-col items-center justify-center bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 border border-blue-100">
+        <div className="flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-purple-100">
           <motion.div
             whileHover={{ scale: 1.05 }}
             transition={{ type: "spring", stiffness: 300 }}
           >
-            <Avatar className="h-20 w-20 ring-4 ring-blue-100">
+            <Avatar className="h-20 w-20 ring-4 ring-purple-100">
               <AvatarImage src={selectedUser?.profilePicture} alt="profile" />
-              <AvatarFallback className="bg-blue-100 text-blue-600 text-xl">
+              <AvatarFallback className="bg-gradient-to-br from-purple-100 to-pink-100 text-purple-600 text-xl">
                 {selectedUser?.username?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -65,7 +65,7 @@ const Messages = ({ selectedUser }) => {
           </span>
           <Link to={`/profile/${selectedUser?._id}`}>
             <Button 
-              className="h-8 mt-4 bg-blue-600 hover:bg-blue-700 transition-colors"
+              className="h-8 mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-md hover:shadow-lg"
               variant="default"
             >
               View profile
@@ -91,8 +91,8 @@ const Messages = ({ selectedUser }) => {
                   whileHover={{ scale: 1.02 }}
                   className={`p-4 rounded-2xl max-w-md break-words ${
                     isSender
-                      ? "bg-blue-600 text-white rounded-br-none shadow-blue-100"
-                      : "bg-white text-gray-800 rounded-bl-none border border-blue-100"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-br-none shadow-purple-100"
+                      : "bg-white/80 backdrop-blur-sm text-gray-800 rounded-bl-none border border-purple-100"
                   } shadow-lg`}
                 >
                   {msg.message}

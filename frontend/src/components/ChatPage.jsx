@@ -90,16 +90,16 @@ const ChatPage = () => {
   if (!user) return null;
 
   return (
-    <div className="flex ml-[16%] h-screen bg-gradient-to-br from-blue-50 to-white">
+    <div className="flex ml-[16%] h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-white">
       <motion.section
         variants={sidebarVariants}
         initial="hidden"
         animate="visible"
-        className="w-full md:w-1/4 my-8 bg-white rounded-r-xl shadow-lg border-r border-blue-100"
+        className="w-full md:w-1/4 my-8 bg-white/80 backdrop-blur-sm rounded-r-xl shadow-lg border-r border-purple-100"
       >
         <div className="p-6">
           <h1 className="font-bold mb-4 text-xl text-gray-800 flex items-center gap-2">
-            <MessageCircle className="w-6 h-6 text-blue-600" />
+            <MessageCircle className="w-6 h-6 text-purple-600" />
             Messages
           </h1>
           <div className="relative">
@@ -107,7 +107,7 @@ const ChatPage = () => {
             <Input
               type="search"
               placeholder="Search messages..."
-              className="pl-9 bg-gray-50 border-blue-100 focus:border-blue-200 transition-colors"
+              className="pl-9 bg-purple-50/50 border-purple-100 focus:border-purple-200 transition-all"
             />
           </div>
         </div>
@@ -122,18 +122,18 @@ const ChatPage = () => {
                 variants={listItemVariants}
                 initial="hidden"
                 animate="visible"
-                whileHover={{ backgroundColor: "rgba(59, 130, 246, 0.05)" }}
+                whileHover={{ backgroundColor: "rgba(147, 51, 234, 0.05)" }}
                 onClick={() => dispatch(setSelectedUser(suggestedUser))}
-                className={`flex gap-3 items-center p-4 cursor-pointer transition-all duration-200 ${
+                className={`flex gap-3 items-center p-4 cursor-pointer transition-all duration-300 ${
                   selectedUser?._id === suggestedUser._id 
-                    ? "bg-blue-50 border-l-4 border-blue-600" 
-                    : "border-l-4 border-transparent"
+                    ? "bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500" 
+                    : "border-l-4 border-transparent hover:border-pink-300"
                 }`}
               >
                 <div className="relative">
-                  <Avatar className="w-12 h-12 ring-2 ring-blue-100">
+                  <Avatar className="w-12 h-12 ring-2 ring-purple-100">
                     <AvatarImage src={suggestedUser?.profilePicture} />
-                    <AvatarFallback className="bg-blue-100 text-blue-600">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-100 to-pink-100 text-purple-600">
                       {suggestedUser?.username?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -165,12 +165,12 @@ const ChatPage = () => {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 50 }}
-            className="flex-1 bg-white shadow-lg rounded-l-xl flex flex-col h-full ml-4 border-l border-blue-100"
+            className="flex-1 bg-white/80 backdrop-blur-sm shadow-lg rounded-l-xl flex flex-col h-full ml-4 border-l border-purple-100"
           >
-            <div className="flex gap-3 items-center px-6 py-4 border-b border-blue-100 bg-white">
-              <Avatar className="ring-2 ring-blue-100">
+            <div className="flex gap-3 items-center px-6 py-4 border-b border-purple-100 bg-white/90">
+              <Avatar className="ring-2 ring-purple-100">
                 <AvatarImage src={selectedUser?.profilePicture} alt="profile" />
-                <AvatarFallback className="bg-blue-100 text-blue-600">
+                <AvatarFallback className="bg-gradient-to-br from-purple-100 to-pink-100 text-purple-600">
                   {selectedUser?.username?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -195,20 +195,20 @@ const ChatPage = () => {
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              className="flex items-center gap-2 p-4 border-t border-blue-100 bg-white"
+              className="flex items-center gap-2 p-4 border-t border-purple-100 bg-white/90"
             >
               <Input
                 value={textMessage}
                 onChange={(e) => setTextMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 type="text"
-                className="flex-1 bg-gray-50 border-blue-100 focus:border-blue-200 transition-colors"
+                className="flex-1 bg-purple-50/50 border-purple-100 focus:border-purple-200 transition-all"
                 placeholder="Type a message..."
               />
               <Button
                 onClick={() => sendMessageHandler(selectedUser?._id)}
                 disabled={!textMessage.trim()}
-                className="bg-blue-600 hover:bg-blue-700 transition-colors"
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-md hover:shadow-lg"
               >
                 <Send className="w-4 h-4" />
               </Button>
@@ -224,7 +224,7 @@ const ChatPage = () => {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200 }}
-              className="bg-white p-12 rounded-xl shadow-lg border border-blue-100"
+              className="bg-white/80 backdrop-blur-sm p-12 rounded-2xl shadow-lg border border-purple-100"
             >
               <motion.div
                 animate={{ 
@@ -237,7 +237,7 @@ const ChatPage = () => {
                   repeatType: "reverse"
                 }}
               >
-                <MessageCircle className="w-32 h-32 text-blue-200" />
+                <MessageCircle className="w-32 h-32 text-purple-200" />
               </motion.div>
               <h1 className="font-medium text-xl mt-6 text-gray-800">
                 Your messages
