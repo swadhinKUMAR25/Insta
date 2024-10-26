@@ -1,45 +1,61 @@
 import { Conversation } from "../models/conversation.model.js";
 import { getReceiverSocketId, io } from "../socket/socket.js";
 import { Message } from "../models/message.model.js";
-// for chatting
+import { encryptText, decryptText } from "../utils/encryption.js";
+
 export const sendMessage = async (req, res) => {
   try {
     const senderId = req.id;
     const receiverId = req.params.id;
     const { textMessage: message } = req.body;
 
+    // Encrypt the message before saving
+    const encryptedMessage = encryptText(message);
+
     let conversation = await Conversation.findOne({
       participants: { $all: [senderId, receiverId] },
     });
-    // establish the conversation if not started yet.
+
     if (!conversation) {
       conversation = await Conversation.create({
         participants: [senderId, receiverId],
       });
     }
+
     const newMessage = await Message.create({
       senderId,
       receiverId,
-      message,
+      message: encryptedMessage, // Save encrypted message
     });
+
     if (newMessage) conversation.messages.push(newMessage._id);
 
     await Promise.all([conversation.save(), newMessage.save()]);
 
-    // implement socket io for real time data transfer
+    // Decrypt message before sending through socket
+    const decryptedMessage = {
+      ...newMessage.toObject(),
+      message: decryptText(newMessage.message),
+    };
+
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
+      io.to(receiverSocketId).emit("newMessage", decryptedMessage);
     }
 
     return res.status(201).json({
       success: true,
-      newMessage,
+      newMessage: decryptedMessage,
     });
   } catch (error) {
     console.log(error);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
   }
 };
+
 export const getMessage = async (req, res) => {
   try {
     const senderId = req.id;
@@ -47,13 +63,25 @@ export const getMessage = async (req, res) => {
     const conversation = await Conversation.findOne({
       participants: { $all: [senderId, receiverId] },
     }).populate("messages");
+
     if (!conversation)
       return res.status(200).json({ success: true, messages: [] });
 
-    return res
-      .status(200)
-      .json({ success: true, messages: conversation?.messages });
+    // Decrypt all messages before sending
+    const decryptedMessages = conversation.messages.map((msg) => ({
+      ...msg.toObject(),
+      message: decryptText(msg.message),
+    }));
+
+    return res.status(200).json({
+      success: true,
+      messages: decryptedMessages,
+    });
   } catch (error) {
     console.log(error);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
   }
 };
